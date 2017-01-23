@@ -217,13 +217,15 @@ srd(void)
 }
 
 static void
-sinit(const char *key, const char *nick, const char *user)
+sinit(const char *key, const char *nick, const char *user, const char *ns)
 {
 	if (key)
 		sndf("PASS %s", key);
 	sndf("NICK %s", nick);
 	sndf("USER %s 8 * :%s", user, user);
 	sndf("MODE %s +i", nick);
+	if (ns)
+		sndf("PRIVMSG NickServ :IDENTIFY %s", ns);
 }
 
 static char *
@@ -643,6 +645,7 @@ tredraw(void)
 	wmove(scr.mw, 0, 0);
 	while (q < p)
 		q = pushl(q, p);
+	wrefresh(scr.iw);
 	wrefresh(scr.mw);
 }
 
@@ -809,6 +812,7 @@ main(int argc, char *argv[])
 	const char *user = getenv("USER");
 	const char *ircnick = getenv("IRCNICK");
 	const char *key = getenv("IRCPASS");
+	const char *ns = getenv("NICKSERV");
 	const char *server = SRV;
 	const char *port = PORT;
 	char *err;
@@ -857,7 +861,7 @@ main(int argc, char *argv[])
 	if (err)
 		panic(err);
 	chadd(server, 0);
-	sinit(key, nick, user);
+	sinit(key, nick, user, ns);
 	reconn = 0;
 	while (!quit) {
 		struct timeval t = {.tv_sec = 5};
@@ -888,7 +892,7 @@ main(int argc, char *argv[])
 			pushf(0, "-!- Link lost, attempting reconnection...");
 			if (dial(server, port) != 0)
 				continue;
-			sinit(key, nick, user);
+			sinit(key, nick, user, ns);
 			for (c = chl; c < &chl[nch]; ++c)
 				if (c->join)
 					sndf("JOIN %s", c->name);
